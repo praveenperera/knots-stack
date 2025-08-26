@@ -26,6 +26,6 @@ ExecStop=/usr/bin/docker compose -f /opt/stack/docker-compose.yaml down
 
 The stack exposes the following ports:
 
-- Knots RPC: 127.0.0.1:10000
+- Knots RPC: 127.0.0.1:8332
 - Electrs: 127.0.0.1:50001
-- Mempool: 127.0.0.1:50002
+- Mempool: 127.0.0.1:8080
