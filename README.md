@@ -12,7 +12,7 @@ This is a docker compose stack for running a knots node with electrs and mempool
 
 ## Systemd service
 
-You can also run the stack as a systemd service. To do so, run `cp knots-stack.service /etc/systemd/system/` and then `systemctl enable knots-stack.service` to enable the service.
+You can also run the stack as a systemd service so that docker compose runs on startup. To do so, run `cp knots-stack.service /etc/systemd/system/` and then `systemctl enable knots-stack.service` to enable the service.
 
 But before you do updaate the following lines with the actual location of your `docker-compose.yaml` file:
 
