@@ -33,9 +33,10 @@ ports:
   - "8332:8332" # RPC (firewall/Tailscale restrict externally)
 ```
 
-- A Caddy reverse proxy is included to expose the mempool frontend on port 80. It assumes that mDNS is setup as bitcoin.local
+- A Caddy reverse proxy is included to expose the mempool frontend on port 80. It assumes that mDNS (i'm using avahi) is setup as bitcoin.local
   this isn't needed, I just want to see my mempool.space instance when I go to bitcoin.local on my local network. Feel free to remove
-  the caddy lines from the docker-compose.yml if you don't want to use it.
+  the caddy lines from the docker-compose.yml if you don't want to use it. If you don't have avahi installed, you can just use the IP address
+  of your bitcoin node instead of bitcoin.local
 
 ## Usage
 
