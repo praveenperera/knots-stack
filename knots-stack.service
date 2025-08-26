@@ -1,0 +1,18 @@
+[Unit]
+Description=Knots + Electrs + Mempool (Docker Compose stack)
+Requires=docker.service
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/stack
+ExecStart=/usr/bin/docker compose -f /opt/stack/docker-compose.yaml up -d
+ExecStop=/usr/bin/docker compose -f /opt/stack/docker-compose.yaml down
+TimeoutStartSec=0
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
