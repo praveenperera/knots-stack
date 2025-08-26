@@ -47,8 +47,6 @@ caddy:
     - ./Caddyfile:/etc/caddy/Caddyfile:ro
 ```
 
-``
-
 ## Usage
 
 The stack exposes the following ports:
