@@ -1,4 +1,4 @@
-This is a docker compose stack for running a knots node with electrs and mempool.
+This is a docker compose stack for running a knots node with electrs and mempool. You can use this as a template to run your own.
 
 ## Prerequisites
 
