@@ -6,7 +6,7 @@ services:
     stop_grace_period: 1m
     volumes:
       - ./data/bitcoin:/home/bitcoin/.bitcoin
-      - ./bitcoin.conf:/opt/stack/bitcoin.conf
+      - ./bitcoin.conf:/opt/stack/bitcoin.conf:ro
     command: >
       -printtoconsole
       -conf=/opt/stack/bitcoin.conf
@@ -45,6 +45,11 @@ services:
       - ./data/bitcoin:/bitcoin:ro
       - ./data/electrs:/data/db
       - ./electrs.toml:/etc/electrs/config.toml
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4224"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
 
   # Mempool backend (API & websocket) – talks to electrs & bitcoind
   backend:
@@ -85,8 +90,6 @@ services:
     volumes:
       - ./data/bitcoin:/bitcoin:ro
 
-    ports:
-      - "8999:8999" # backend API (frontend expects this internally)
     healthcheck:
       test:
         ["CMD", "wget", "-qO-", "http://127.0.0.1:8999/api/v1/lightning/nodes"]
@@ -113,7 +116,7 @@ services:
     ports:
       - "8080:8080" # Web UI
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080"]
       interval: 60s
       timeout: 5s
       retries: 5
@@ -136,6 +139,3 @@ services:
       - "80:80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-
-volumes:
-  db-data: {}
