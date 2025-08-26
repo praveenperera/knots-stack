@@ -1,0 +1,9 @@
+{
+	auto_https off
+}
+
+bitcoin.local:80 {
+	handle_path /* {
+		reverse_proxy mempool:8080
+	}
+}

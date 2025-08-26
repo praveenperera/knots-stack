@@ -1,0 +1,32 @@
+# auth to bitcoin node (configured via environment variable)
+jsonrpc_timeout = "10s"
+
+# electrum rpc addr
+electrum_rpc_addr = "0.0.0.0:50001"
+
+# monitor electrum server
+monitoring_addr = "0.0.0.0:4224"
+
+# use cookie auth
+cookie_file = "/bitcoin/.cookie"
+
+# === Performance / tuning ===
+# How many blocks to index in one batch (default ~10)
+# Larger batches = fewer DB commits but more RAM
+index_batch_size = 50
+
+# Number of threads to use when validating scripts (default = #CPUs)
+validation_threads = 4
+
+# How many concurrent RPC calls to bitcoind when scanning
+# (default = 4—bump in powerful hosts)
+concurrency = 4
+
+[zmq]
+# must match your bitcoin.conf zmqpubrawblock / rawtx
+raw_blocks = "tcp://bitcoin:28332"
+raw_txs = "tcp://bitcoin:28333"
+
+# === Electrum server settings ===
+[server]
+max_connections = 1000

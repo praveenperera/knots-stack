@@ -1,0 +1,141 @@
+services:
+  bitcoin:
+    image: bitcoinknots/bitcoin:27
+    container_name: bitcoin
+    restart: unless-stopped
+    stop_grace_period: 1m
+    volumes:
+      - ./data/bitcoin:/home/bitcoin/.bitcoin
+      - ./bitcoin.conf:/opt/stack/bitcoin.conf
+    command: >
+      -printtoconsole
+      -conf=/opt/stack/bitcoin.conf
+    ports:
+      - "8333:8333" # P2P (optional to expose externally)
+      - "8332:8332" # RPC (firewall/Tailscale restrict externally)
+    environment:
+      UID: 1000
+      GID: 1000
+    healthcheck:
+      test: ["CMD", "bitcoin-cli", "-rpcconnect=127.0.0.1", "getblockchaininfo"]
+      interval: 4s
+      timeout: 10s
+      retries: 5
+
+  electrs:
+    image: getumbrel/electrs:v0.10.9
+    container_name: electrs
+    restart: unless-stopped
+    user: 1000:1000
+    depends_on:
+      - bitcoin
+    environment:
+      ELECTRS_NETWORK: bitcoin
+      ELECTRS_DAEMON_RPC_ADDR: bitcoin:8332
+      ELECTRS_DAEMON_P2P_ADDR: bitcoin:8333
+      ELECTRS_DB_DIR: /data/db
+      ELECTRS_DAEMON_DIR: /bitcoin
+      ELECTRS_SKIP_BLOCK_DOWNLOAD_WAIT: "true"
+      ELECTRS_LOG_FILTERS: electrs=info,electrs::index=debug,electrs::db=debug
+      RUST_LOG: electrs=debug
+    ports:
+      - "50001:50001" # Electrum TCP (optional external)
+      - "4224:4224" # monitoring
+    volumes:
+      - ./data/bitcoin:/bitcoin:ro
+      - ./data/electrs:/data/db
+      - ./electrs.toml:/etc/electrs/config.toml
+
+  # Mempool backend (API & websocket) – talks to electrs & bitcoind
+  backend:
+    image: mempool/backend:latest
+    container_name: mempool-backend
+    restart: unless-stopped
+    user: 1000:1000
+    depends_on:
+      - bitcoin
+      - electrs
+      - db
+    environment:
+      MEMPOOL_NETWORK: mainnet
+
+      MEMPOOL_LOG_LEVEL: debug
+
+      # electrum
+      MEMPOOL_BACKEND: "electrum"
+      ELECTRUM_HOST: electrs
+      ELECTRUM_PORT: "50001"
+      ELECTRUM_TLS_ENABLED: false
+
+      # bitcoin
+      CORE_RPC_HOST: bitcoin
+      CORE_RPC_PORT: "8332"
+      CORE_RPC_COOKIE: true
+      CORE_RPC_COOKIE_PATH: /bitcoin/.cookie
+
+      # db
+      DATABASE_ENABLED: "true"
+      DATABASE_HOST: db
+      DATABASE_PORT: "3306"
+      DATABASE_DATABASE: mempool
+      DATABASE_USER: mempool
+      DATABASE_PASS: mempool
+      DATABASE_URL: "mysql://mempool:mempool@db:3306/mempool"
+
+    volumes:
+      - ./data/bitcoin:/bitcoin:ro
+
+    ports:
+      - "8999:8999" # backend API (frontend expects this internally)
+    healthcheck:
+      test:
+        ["CMD", "wget", "-qO-", "http://127.0.0.1:8999/api/v1/lightning/nodes"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+
+  # Mempool frontend (serves UI)
+  mempool:
+    image: mempool/frontend:latest
+    container_name: mempool-frontend
+    restart: unless-stopped
+    user: "1000:1000"
+    stop_grace_period: 1m
+    command: "./wait-for db:3306 --timeout=720 -- nginx -g 'daemon off;'"
+    depends_on:
+      - backend
+    environment:
+      FRONTEND_HTTP_PORT: "8080"
+      BACKEND_MAINNET_HTTP_HOST: "backend"
+      BACKEND_MAINNET_HTTP_PORT: "8999"
+      BACKEND_MAINNET_WS_HOST: "backend"
+      BACKEND_MAINNET_WS_PORT: "8999"
+    ports:
+      - "8080:8080" # Web UI
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1"]
+      interval: 60s
+      timeout: 5s
+      retries: 5
+
+  db:
+    image: mariadb:10.5
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: mempool
+      MYSQL_USER: mempool
+      MYSQL_PASSWORD: mempool
+      MYSQL_ROOT_PASSWORD: rootpass
+    volumes:
+      - ./data/db-data:/var/lib/mysql
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+
+volumes:
+  db-data: {}
